@@ -1,3 +1,10 @@
+# ─── Infra Pulse runtime files ───
+infra_pulse.db
+infra_pulse.db-wal
+infra_pulse.db-shm
+pulse.log
+config.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
