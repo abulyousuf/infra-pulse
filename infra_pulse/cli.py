@@ -48,24 +48,24 @@ def build_parser() -> argparse.ArgumentParser:
 def cmd_add(args) -> None:
     # Validate tcp target format early for a friendly error
     if args.type == "tcp" and ":" not in args.target:
-        print("TCP targets must be in 'host:port' form, e.g. example.com:443")
+        console.print("[red]TCP targets must be in 'host:port' form, e.g. example.com:443[/red]")
         sys.exit(1)
 
     if db.get_target(args.name) is not None:
-        print(f"A target named '{args.name}' already exists.")
+        console.print(f"[red]A target named '{args.name}' already exists.[/red]")
         sys.exit(1)
 
     db.add_target(args.name, args.type, args.target, args.interval)
-    print(
-        f"Added '{args.name}' "
-        f"({args.type} → {args.target}) checking every {args.interval}s."
+    console.print(
+        f"[green]Added[/green] '{args.name}' "
+        f"([cyan]{args.type}[/cyan] → {args.target}) checking every {args.interval}s."
     )
 
 def cmd_remove(args) -> None:
     if db.remove_target(args.name):
-        print(f"Removed '{args.name}'.")
+        console.print(f"[green]Removed[/green] '{args.name}'.")
     else:
-        print(f"No target named '{args.name}'.")
+        console.print(f"[red]No target named '{args.name}'.[/red]")
         sys.exit(1)
 
 def cmd_list(args) -> None:
