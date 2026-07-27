@@ -3,6 +3,7 @@ cli.py — Command-line interface wiring using argparse.
 
 Subcommands:
     add      Add a monitoring target
+    remove   Remove a target by name
     list     List all configured targets
 """
 
@@ -27,6 +28,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_add.add_argument("--target", required=True, help="What to check: URL (http), host/IP (ping/dns), or host:port (tcp)")
     p_add.add_argument("--interval", type=int, default=60, help="Check interval in seconds (default: 60)")
 
+    # remove
+    p_rm = sub.add_parser("remove", help="Remove a target by name")
+    p_rm.add_argument("--name", required=True, help="Name of the target to remove")
+
     # list
     sub.add_parser("list", help="List all configured targets")
 
@@ -50,6 +55,13 @@ def cmd_add(args) -> None:
         f"({args.type} → {args.target}) checking every {args.interval}s."
     )
 
+def cmd_remove(args) -> None:
+    if db.remove_target(args.name):
+        print(f"Removed '{args.name}'.")
+    else:
+        print(f"No target named '{args.name}'.")
+        sys.exit(1)
+
 def cmd_list(args) -> None:
     targets = db.list_targets()
     if not targets:
@@ -64,6 +76,7 @@ def cmd_list(args) -> None:
 
 HANDLERS = {
     "add": cmd_add,
+    "remove": cmd_remove,
     "list": cmd_list,
 }
 
