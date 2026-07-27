@@ -10,7 +10,13 @@ Subcommands:
 import argparse
 import sys
 
+from rich.console import Console
+from rich.table import Table
+from rich import box
+
 from . import db
+
+console = Console()
 
 VALID_TYPES = ("http", "ping", "tcp", "dns")
 
@@ -65,13 +71,21 @@ def cmd_remove(args) -> None:
 def cmd_list(args) -> None:
     targets = db.list_targets()
     if not targets:
-        print("No targets configured. Add one with 'add'.")
+        console.print("[dim]No targets configured. Add one with 'add'.[/dim]")
         return
 
-    for t in targets:
-        active = "yes" if t["active"] else "no"
+    table = Table(title="Configured Targets", box=box.ROUNDED, header_style="bold cyan")
+    table.add_column("Name", style="bold")
+    table.add_column("Type")
+    table.add_column("Target", overflow="fold")
+    table.add_column("Interval", justify="right")
+    table.add_column("Active")
 
-        print(t["name"], t["type"], t["target"], f"{t['interval_seconds']}s", active)
+    for t in targets:
+        active = "[green]yes[/green]" if t["active"] else "[dim]no[/dim]"
+        table.add_row(t["name"], t["type"], t["target"], f"{t['interval_seconds']}s", active)
+
+    console.print(table)
 
 
 HANDLERS = {
