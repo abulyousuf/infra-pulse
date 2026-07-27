@@ -40,3 +40,18 @@ def test_invalid_type_raises(fresh_db):
     with pytest.raises(sqlite3.IntegrityError):
         fresh_db.add_target("X", "carrier-pigeon", "somewhere")
 
+def test_deleting_target_cascades_to_checks(fresh_db):
+    tid = fresh_db.add_target("X", "http", "https://x.com")
+    fresh_db.save_check(tid, "up", 50.0, "HTTP 200")
+
+    # confirm the check exists
+    with fresh_db.get_connection() as conn:
+        before = conn.execute("SELECT COUNT(*) FROM checks").fetchone()[0]
+    assert before == 1
+
+    fresh_db.remove_target("X")
+
+    # confirm cascade removed it
+    with fresh_db.get_connection() as conn:
+        after = conn.execute("SELECT COUNT(*) FROM checks").fetchone()[0]
+    assert after == 0

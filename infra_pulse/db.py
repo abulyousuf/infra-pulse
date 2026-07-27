@@ -90,3 +90,17 @@ def list_targets(active_only: bool = False) -> list[sqlite3.Row]:
                 query += " WHERE active = 1"
             query += " ORDER BY name"
             return conn.execute(query).fetchall()
+
+# ---------- Checks ----------
+
+def save_check(target_id: int, status: str, response_time_ms: float | None, detail: str = "") -> None:
+    """Persist a single check result."""
+    with closing(get_connection()) as conn:
+        with conn:
+            conn.execute(
+                """
+                INSERT INTO checks (target_id, checked_at, status, response_time_ms, detail)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (target_id, datetime.now(timezone.utc).isoformat(), status, response_time_ms, detail),
+            )
