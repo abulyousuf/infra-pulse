@@ -53,3 +53,17 @@ def check_http(url: str) -> dict:
     except requests.exceptions.RequestException as e:
         ms = round((time.perf_counter() - start) * 1000, 2)
         return _result("error", ms, str(e))
+
+# ---------- Dispatcher ----------
+
+def run_check(check_type: str, target: str) -> dict:
+    """
+        Dispatch a check by type.
+
+        Accepts:
+        http  → full URL, e.g. "https://example.com"
+    """
+    if check_type == "http":
+        return check_http(target)
+    
+    return _result("error", None, f"Unknown check type: {check_type}")

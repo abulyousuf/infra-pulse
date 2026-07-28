@@ -5,6 +5,7 @@ Subcommands:
     add      Add a monitoring target
     remove   Remove a target by name
     list     List all configured targets
+    check    Run a single one-off check and print the result
 """
 
 import argparse
@@ -14,7 +15,7 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
-from . import db
+from . import db, checks
 
 console = Console()
 
@@ -40,6 +41,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     # list
     sub.add_parser("list", help="List all configured targets")
+
+    # check (one-off)
+    p_check = sub.add_parser("check", help="Run a single check now and print the result")
+    p_check.add_argument("--name", required=True)
 
     return parser
 
@@ -87,11 +92,34 @@ def cmd_list(args) -> None:
 
     console.print(table)
 
+def cmd_check(args) -> None:
+    target = db.get_target(args.name)
+    if target is None:
+        console.print(f"[red]No target named '{args.name}'.[/red]")
+        sys.exit(1)
+
+    console.print(f"Checking [bold]{args.name}[/bold] ([cyan]{target['type']}[/cyan] → {target['target']}) ...")
+    result = checks.run_check(target["type"], target["target"])
+
+    db.save_check(
+        target_id=target["id"],
+        status=result["status"],
+        response_time_ms=result["response_time_ms"],
+        detail=result["detail"],
+    )
+
+    colour = {"up": "green", "down": "red", "error": "yellow"}.get(result["status"], "white")
+    ms = f"{result['response_time_ms']} ms" if result["response_time_ms"] is not None else "n/a"
+    console.print(
+        f"[{colour}]{result['status'].upper()}[/{colour}] "
+        f"({ms}) — {result['detail']}"
+    )
 
 HANDLERS = {
     "add": cmd_add,
     "remove": cmd_remove,
     "list": cmd_list,
+    "check": cmd_check,
 }
 
 def main(argv=None) -> None:
