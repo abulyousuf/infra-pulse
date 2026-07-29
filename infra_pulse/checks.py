@@ -13,6 +13,7 @@ import time
 
 import requests
 import dns.resolver
+import dns.exception
 
 # Default timeouts (seconds)
 HTTP_TIMEOUT  = 10
