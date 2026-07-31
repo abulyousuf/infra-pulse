@@ -3,6 +3,7 @@ test_checks.py — Tests for the check logic.
 
 Techniques demonstrated:
   - Mocking network calls with unittest.mock so tests run offline and instantly.
+  - Testing pure logic (the run_check dispatcher's input validation).
 """
 
 from unittest.mock import patch, MagicMock
