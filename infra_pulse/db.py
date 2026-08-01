@@ -143,3 +143,49 @@ def get_uptime_stats(target_id: int, hours: int = 24) -> dict:
         "uptime_pct":     round((up / total) * 100, 2),
         "avg_response_ms": avg_ms,
     }
+
+def get_recent_checks(target_id: int, limit: int = 20) -> list[sqlite3.Row]:
+    """Return the most recent N checks for a target, newest first."""
+    with closing(get_connection()) as conn:
+        with conn:
+            return conn.execute(
+                """
+                SELECT * FROM checks
+                WHERE target_id = ?
+                ORDER BY checked_at DESC
+                LIMIT ?
+                """,
+                (target_id, limit),
+            ).fetchall()
+
+def get_last_check(target_id: int) -> sqlite3.Row | None:
+    """Return the most recent check for a target, or None if never checked."""
+    with closing(get_connection()) as conn:
+        with conn:
+            return conn.execute(
+                """
+                SELECT * FROM checks
+                WHERE target_id = ?
+                ORDER BY checked_at DESC
+                LIMIT 1
+                """,
+                (target_id,),
+            ).fetchone()
+
+def get_all_uptime_stats(hours: int = 24) -> list[dict]:
+    """Return uptime stats for every target, merged with target metadata."""
+    targets = list_targets()
+    results = []
+    for t in targets:
+        stats = get_uptime_stats(t["id"], hours=hours)
+        last  = get_last_check(t["id"])
+        results.append({
+            "name":            t["name"],
+            "type":            t["type"],
+            "target":          t["target"],
+            "active":          bool(t["active"]),
+            "last_status":     last["status"] if last else "never checked",
+            "last_checked":    last["checked_at"] if last else None,
+            **stats,
+        })
+    return results
