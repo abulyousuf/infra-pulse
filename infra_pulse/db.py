@@ -6,7 +6,7 @@ Handles all schema creation, target CRUD, and check result storage/querying.
 
 import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from contextlib import closing
 
 DB_PATH = os.environ.get("INFRA_PULSE_DB", "infra_pulse.db")
@@ -91,7 +91,7 @@ def list_targets(active_only: bool = False) -> list[sqlite3.Row]:
             query += " ORDER BY name"
             return conn.execute(query).fetchall()
 
-# ---------- Checks ----------
+# ---------- Check Results ----------
 
 def save_check(target_id: int, status: str, response_time_ms: float | None, detail: str = "") -> None:
     """Persist a single check result."""
@@ -104,3 +104,42 @@ def save_check(target_id: int, status: str, response_time_ms: float | None, deta
                 """,
                 (target_id, datetime.now(timezone.utc).isoformat(), status, response_time_ms, detail),
             )
+
+def get_uptime_stats(target_id: int, hours: int = 24) -> dict:
+    """
+    Calculate uptime % and average response time over the last N hours.
+
+    Returns a dict with keys: total, up, down, error, uptime_pct, avg_response_ms.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+    with closing(get_connection()) as conn:
+        with conn:
+            rows = conn.execute(
+                """
+                SELECT status, response_time_ms
+                FROM checks
+                WHERE target_id = ?
+                AND checked_at >= ?
+                """,
+                (target_id, cutoff),
+            ).fetchall()
+
+    total = len(rows)
+    if total == 0:
+        return {"total": 0, "up": 0, "down": 0, "error": 0, "uptime_pct": None, "avg_response_ms": None}
+
+    up    = sum(1 for r in rows if r["status"] == "up")
+    down  = sum(1 for r in rows if r["status"] == "down")
+    error = sum(1 for r in rows if r["status"] == "error")
+
+    response_times = [r["response_time_ms"] for r in rows if r["response_time_ms"] is not None]
+    avg_ms = round(sum(response_times) / len(response_times), 2) if response_times else None
+
+    return {
+        "total":          total,
+        "up":             up,
+        "down":           down,
+        "error":          error,
+        "uptime_pct":     round((up / total) * 100, 2),
+        "avg_response_ms": avg_ms,
+    }
