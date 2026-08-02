@@ -83,3 +83,29 @@ def test_uptime_none_when_no_checks(fresh_db):
     assert stats["total"] == 0
     assert stats["uptime_pct"] is None
     assert stats["avg_response_ms"] is None
+
+def test_get_recent_checks_newest_first_with_limit(fresh_db):
+    tid = fresh_db.add_target("X", "http", "https://x.com")
+    fresh_db.save_check(tid, "up", 10.0, "first")
+    fresh_db.save_check(tid, "down", 20.0, "second")
+    fresh_db.save_check(tid, "up", 30.0, "third")
+    recent = fresh_db.get_recent_checks(tid, limit=2)
+    assert len(recent) == 2
+    assert recent[0]["detail"] == "third"   # newest first
+    assert recent[1]["detail"] == "second"
+
+def test_get_last_check_none_then_latest(fresh_db):
+    tid = fresh_db.add_target("X", "http", "https://x.com")
+    assert fresh_db.get_last_check(tid) is None
+    fresh_db.save_check(tid, "up", 10.0, "first")
+    fresh_db.save_check(tid, "up", 30.0, "latest")
+    assert fresh_db.get_last_check(tid)["detail"] == "latest"
+
+def test_all_uptime_stats_handles_never_checked(fresh_db):
+    t1 = fresh_db.add_target("A", "http", "x")
+    fresh_db.add_target("B", "dns", "y")   # no checks
+    fresh_db.save_check(t1, "up", 10.0, "ok")
+    stats = {s["name"]: s for s in fresh_db.get_all_uptime_stats()}
+    assert stats["A"]["last_status"] == "up"
+    assert stats["B"]["last_status"] == "never checked"
+    assert stats["B"]["uptime_pct"] is None
