@@ -6,6 +6,7 @@ Subcommands:
     remove   Remove a target by name
     list     List all configured targets
     check    Run a single one-off check and print the result
+    report   Show uptime summary (all targets) or detailed history (one target)
 """
 
 import argparse
@@ -15,7 +16,7 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
-from . import db, checks
+from . import db, checks, reports
 
 console = Console()
 
@@ -45,6 +46,14 @@ def build_parser() -> argparse.ArgumentParser:
     # check (one-off)
     p_check = sub.add_parser("check", help="Run a single check now and print the result")
     p_check.add_argument("--name", required=True)
+
+    # report
+    p_report = sub.add_parser("report", help="Show uptime summary or detailed history")
+    p_report.add_argument("--name", help="If given, show detailed history for this target")
+    p_report.add_argument("--hours", type=int, default=24,
+                          help="Window for uptime stats (default: 24)")
+    p_report.add_argument("--limit", type=int, default=20,
+                          help="Rows of history to show with --name (default: 20)")
 
     return parser
 
@@ -115,11 +124,15 @@ def cmd_check(args) -> None:
         f"({ms}) — {result['detail']}"
     )
 
+def cmd_report(args) -> None:
+    reports.print_summary(hours=args.hours)
+
 HANDLERS = {
     "add": cmd_add,
     "remove": cmd_remove,
     "list": cmd_list,
     "check": cmd_check,
+    "report": cmd_report,
 }
 
 def main(argv=None) -> None:
