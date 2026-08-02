@@ -2,6 +2,8 @@
 reports.py — Render uptime summaries and check history using rich tables.
 """
 
+from datetime import datetime
+
 from rich.console import Console
 from rich.table import Table
 from rich import box
@@ -61,3 +63,46 @@ def print_summary(hours: int = 24) -> None:
         )
 
     console.print(table)
+
+def print_target_history(name: str, limit: int = 20) -> None:
+    """Print detailed recent check history for a single target."""
+    target = db.get_target(name)
+    if target is None:
+        console.print(f"[red]No target named '{name}'.[/red]")
+        return
+
+    stats = db.get_uptime_stats(target["id"], hours=24)
+    console.print(
+        f"\n[bold]{name}[/bold]  ([cyan]{target['type']}[/cyan] → {target['target']})"
+    )
+    console.print(
+        f"Last 24h: {_uptime_style(stats['uptime_pct'])} uptime "
+        f"across {stats['total']} checks "
+        f"({stats['up']} up / {stats['down']} down / {stats['error']} error)\n"
+    )
+
+    recent_checks = db.get_recent_checks(target["id"], limit=limit)
+    if not recent_checks:
+        console.print("[dim]No checks recorded yet.[/dim]")
+        return
+
+    table = Table(box=box.SIMPLE, header_style="bold cyan")
+    table.add_column("Checked At (UTC)")
+    table.add_column("Status")
+    table.add_column("Response", justify="right")
+    table.add_column("Detail", overflow="fold")
+
+    for c in recent_checks:
+        ts = _format_timestamp(c["checked_at"])
+        ms = f"{c['response_time_ms']} ms" if c["response_time_ms"] is not None else "[dim]—[/dim]"
+        table.add_row(ts, _status_style(c["status"]), ms, c["detail"] or "")
+
+    console.print(table)
+
+def _format_timestamp(iso_string: str) -> str:
+    """Trim an ISO timestamp to second precision for display."""
+    try:
+        dt = datetime.fromisoformat(iso_string)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, TypeError):
+        return iso_string

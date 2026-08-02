@@ -125,7 +125,10 @@ def cmd_check(args) -> None:
     )
 
 def cmd_report(args) -> None:
-    reports.print_summary(hours=args.hours)
+    if args.name:
+        reports.print_target_history(args.name, limit=args.limit)
+    else:
+        reports.print_summary(hours=args.hours)
 
 HANDLERS = {
     "add": cmd_add,
