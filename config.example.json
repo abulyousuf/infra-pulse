@@ -1,0 +1,16 @@
+{
+  "default_interval_seconds": 60,
+  "alerts": {
+    "terminal": true,
+    "log_file": "pulse.log",
+    "email": {
+      "enabled": false,
+      "smtp_host": "smtp.gmail.com",
+      "smtp_port": 587,
+      "username": "your-email@gmail.com",
+      "password": "your-16-char-app-password",
+      "from_addr": "your-email@gmail.com",
+      "to_addrs": ["alert-recipient@example.com"]
+    }
+  }
+}
