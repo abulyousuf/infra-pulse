@@ -7,6 +7,7 @@ Subcommands:
     list     List all configured targets
     check    Run a single one-off check and print the result
     report   Show uptime summary (all targets) or detailed history (one target)
+    run      Start the continuous monitoring loop
 """
 
 import argparse
@@ -16,7 +17,7 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
-from . import db, checks, reports, config, alerts
+from . import db, checks, reports, config, alerts, scheduler
 
 console = Console()
 
@@ -54,6 +55,9 @@ def build_parser() -> argparse.ArgumentParser:
                           help="Window for uptime stats (default: 24)")
     p_report.add_argument("--limit", type=int, default=20,
                           help="Rows of history to show with --name (default: 20)")
+
+    # run (loop)
+    sub.add_parser("run", help="Start the continuous monitoring loop")
 
     return parser
 
@@ -141,12 +145,17 @@ def cmd_report(args) -> None:
     else:
         reports.print_summary(hours=args.hours)
 
+def cmd_run(args) -> None:
+      cfg = config.load_config()
+      scheduler.run_loop(cfg)
+
 HANDLERS = {
     "add": cmd_add,
     "remove": cmd_remove,
     "list": cmd_list,
     "check": cmd_check,
     "report": cmd_report,
+    "run": cmd_run,
 }
 
 def main(argv=None) -> None:
