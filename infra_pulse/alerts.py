@@ -9,6 +9,9 @@ Alerts only fire on *state transitions* to avoid spamming on every check.
 """
 
 import logging
+import smtplib
+from datetime import datetime, timezone
+from email.mime.text import MIMEText
 
 from rich.console import Console
 
@@ -54,3 +57,35 @@ def send_alert(config: dict, target_name: str, old_status: str, new_status: str,
         logger.warning(message)
         colour = "green" if is_recovery else "red"
         console.print(f"[{colour}]{message}[/{colour}]")
+
+    email_cfg = alert_cfg.get("email", {})
+    if email_cfg.get("enabled", False):
+        try:
+            _send_email(email_cfg, target_name, new_status, message)
+        except Exception as e:
+            logger.error(f"Failed to send email alert: {e}")
+
+def _send_email(email_cfg: dict, target_name: str, new_status: str, body: str) -> None:
+    """Send a single email alert via SMTP using STARTTLS."""
+    subject = f"[Infra Pulse] {target_name} is {new_status.upper()}"
+    full_body = (
+        f"{body}\n\n"
+        f"Time (UTC): {datetime.now(timezone.utc).isoformat()}\n"
+        f"-- Infra Pulse"
+    )
+
+    msg = MIMEText(full_body)
+    msg["Subject"] = subject
+    msg["From"]    = email_cfg["from_addr"]
+    msg["To"]      = ", ".join(email_cfg["to_addrs"])
+
+    with smtplib.SMTP(email_cfg["smtp_host"], email_cfg["smtp_port"], timeout=15) as server:
+        server.starttls()
+        server.login(email_cfg["username"], email_cfg["password"])
+        server.sendmail(
+            email_cfg["from_addr"],
+            email_cfg["to_addrs"],
+            msg.as_string(),
+        )
+
+    logger.info(f"Email alert sent for '{target_name}' to {email_cfg['to_addrs']}")
