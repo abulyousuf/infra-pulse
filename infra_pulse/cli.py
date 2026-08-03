@@ -16,7 +16,7 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
-from . import db, checks, reports
+from . import db, checks, reports, config, alerts
 
 console = Console()
 
@@ -107,6 +107,13 @@ def cmd_check(args) -> None:
         console.print(f"[red]No target named '{args.name}'.[/red]")
         sys.exit(1)
 
+    cfg = config.load_config()
+    alerts.setup_logging(cfg["alerts"]["log_file"])
+
+    # Capture previous status BEFORE saving the new check
+    last = db.get_last_check(target["id"])
+    old_status = last["status"] if last else "unknown"
+
     console.print(f"Checking [bold]{args.name}[/bold] ([cyan]{target['type']}[/cyan] → {target['target']}) ...")
     result = checks.run_check(target["type"], target["target"])
 
@@ -117,12 +124,16 @@ def cmd_check(args) -> None:
         detail=result["detail"],
     )
 
-    colour = {"up": "green", "down": "red", "error": "yellow"}.get(result["status"], "white")
+    new_status = result["status"]
+    colour = {"up": "green", "down": "red", "error": "yellow"}.get(new_status, "white")
     ms = f"{result['response_time_ms']} ms" if result["response_time_ms"] is not None else "n/a"
-    console.print(
-        f"[{colour}]{result['status'].upper()}[/{colour}] "
-        f"({ms}) — {result['detail']}"
-    )
+    console.print(f"[{colour}]{new_status.upper()}[/{colour}] ({ms}) — {result['detail']}")
+
+    # Alert on a real transition
+    transitioned = old_status != new_status
+    first_check_but_bad = old_status == "unknown" and new_status != "up"
+    if transitioned and (old_status != "unknown" or first_check_but_bad):
+        alerts.send_alert(cfg, target["name"], old_status, new_status, result["detail"])
 
 def cmd_report(args) -> None:
     if args.name:
