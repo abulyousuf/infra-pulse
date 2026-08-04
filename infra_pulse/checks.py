@@ -9,15 +9,15 @@ Every public function returns a consistent result dict:
     }
 """
 
-import time
-import socket
-import subprocess
 import platform
 import re
+import socket
+import subprocess
+import time
 
-import requests
-import dns.resolver
 import dns.exception
+import dns.resolver
+import requests
 
 # Default timeouts (seconds)
 HTTP_TIMEOUT  = 10
@@ -109,7 +109,7 @@ def check_tcp(host: str, port: int) -> dict:
     except ConnectionRefusedError:
         ms = round((time.perf_counter() - start) * 1000, 2)
         return _result("down", ms, f"TCP {host}:{port} refused")
-    except socket.timeout:
+    except TimeoutError:
         ms = round((time.perf_counter() - start) * 1000, 2)
         return _result("down", ms, f"TCP {host}:{port} timed out after {TCP_TIMEOUT}s")
     except socket.gaierror as e:
@@ -143,6 +143,7 @@ def check_ping(host: str) -> dict:
             capture_output=True,
             text=True,
             timeout=PING_TIMEOUT + 2,
+            check=False,
         )
         ms = round((time.perf_counter() - start) * 1000, 2)
 

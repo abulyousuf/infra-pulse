@@ -5,10 +5,10 @@ config.json holds email/SMTP settings and global defaults. It is git-ignored
 because it contains credentials. See config.example.json for the template.
 """
 
+import copy
 import json
 import os
 from typing import Any
-import copy
 
 CONFIG_PATH = os.environ.get("INFRA_PULSE_CONFIG", "config.json")
 

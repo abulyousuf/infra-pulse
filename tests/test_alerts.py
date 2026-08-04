@@ -1,8 +1,9 @@
 """
 test_alerts.py — Tests for transition-based alerting.
 """
-from unittest.mock import patch
 import argparse
+from unittest.mock import patch
+
 from infra_pulse import cli
 
 

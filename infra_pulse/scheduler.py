@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 from rich.console import Console
 
-from . import db, checks, alerts
+from . import alerts, checks, db
 
 console = Console()
 

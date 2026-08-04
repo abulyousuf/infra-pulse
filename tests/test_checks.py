@@ -6,9 +6,11 @@ Techniques demonstrated:
   - Testing pure logic (the run_check dispatcher's input validation).
 """
 
-from unittest.mock import patch, MagicMock
-from infra_pulse import checks
+from unittest.mock import MagicMock, patch
+
 import requests
+
+from infra_pulse import checks
 
 # ----------HTTP: status-code decision rules (network mocked) ----------
 

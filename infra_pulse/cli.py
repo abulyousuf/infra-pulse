@@ -15,11 +15,11 @@ Subcommands:
 import argparse
 import sys
 
+from rich import box
 from rich.console import Console
 from rich.table import Table
-from rich import box
 
-from . import db, checks, reports, config, alerts, scheduler
+from . import alerts, checks, config, db, reports, scheduler
 
 console = Console()
 

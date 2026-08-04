@@ -2,10 +2,12 @@
 test_scheduler.py — Tests for the scheduler's per-check transition logic.
 """
 from unittest.mock import patch
+
 from infra_pulse import scheduler
 
+
 def _fake_target(fresh_db):
-    tid = fresh_db.add_target("T", "http", "https://x.com")
+    fresh_db.add_target("T", "http", "https://x.com")
     return fresh_db.get_target("T")
 
 def _run_checks(fresh_db, statuses, seed_status="unknown"):

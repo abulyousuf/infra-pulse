@@ -6,9 +6,9 @@ Technique demonstrated: isolating the database with a temp file per test
 """
 
 import sqlite3
-import pytest
-
 from contextlib import closing
+
+import pytest
 
 # ---------- Target CRUD ----------
 
@@ -52,17 +52,15 @@ def test_deleting_target_cascades_to_checks(fresh_db):
     fresh_db.save_check(tid, "up", 50.0, "HTTP 200")
 
     # confirm the check exists
-    with closing(fresh_db.get_connection()) as conn:
-        with conn:
-            before = conn.execute("SELECT COUNT(*) FROM checks").fetchone()[0]
+    with closing(fresh_db.get_connection()) as conn, conn:
+        before = conn.execute("SELECT COUNT(*) FROM checks").fetchone()[0]
     assert before == 1
 
     fresh_db.remove_target("X")
 
     # confirm cascade removed it
-    with closing(fresh_db.get_connection()) as conn:
-        with conn:
-            after = conn.execute("SELECT COUNT(*) FROM checks").fetchone()[0]
+    with closing(fresh_db.get_connection()) as conn, conn:
+        after = conn.execute("SELECT COUNT(*) FROM checks").fetchone()[0]
     assert after == 0
 
 # ---------- Uptime Stats ----------

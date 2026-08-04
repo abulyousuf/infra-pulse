@@ -10,6 +10,7 @@ import pytest
 
 from infra_pulse import db as db_module
 
+
 @pytest.fixture
 def fresh_db(tmp_path, monkeypatch):
     """Return the db module wired to a temporary, empty database."""

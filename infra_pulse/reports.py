@@ -4,9 +4,9 @@ reports.py — Render uptime summaries and check history using rich tables.
 
 from datetime import datetime
 
+from rich import box
 from rich.console import Console
 from rich.table import Table
-from rich import box
 
 from . import db
 
