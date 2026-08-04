@@ -8,6 +8,8 @@ Subcommands:
     check    Run a single one-off check and print the result
     report   Show uptime summary (all targets) or detailed history (one target)
     run      Start the continuous monitoring loop
+    enable   Re-activate a paused target
+    disable  Pause a target without deleting it
 """
 
 import argparse
@@ -58,6 +60,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     # run (loop)
     sub.add_parser("run", help="Start the continuous monitoring loop")
+
+    # enable / disable
+    p_en = sub.add_parser("enable", help="Re-activate a paused target")
+    p_en.add_argument("--name", required=True)
+    p_dis = sub.add_parser("disable", help="Pause a target without deleting it")
+    p_dis.add_argument("--name", required=True)
 
     return parser
 
@@ -149,6 +157,20 @@ def cmd_run(args) -> None:
       cfg = config.load_config()
       scheduler.run_loop(cfg)
 
+def cmd_enable(args) -> None:
+    if db.set_target_active(args.name, True):
+        console.print(f"[green]Enabled[/green] '{args.name}'.")
+    else:
+        console.print(f"[red]No target named '{args.name}'.[/red]")
+        sys.exit(1)
+
+def cmd_disable(args) -> None:
+    if db.set_target_active(args.name, False):
+        console.print(f"[yellow]Disabled[/yellow] '{args.name}'.")
+    else:
+        console.print(f"[red]No target named '{args.name}'.[/red]")
+        sys.exit(1)
+
 HANDLERS = {
     "add": cmd_add,
     "remove": cmd_remove,
@@ -156,6 +178,8 @@ HANDLERS = {
     "check": cmd_check,
     "report": cmd_report,
     "run": cmd_run,
+    "enable": cmd_enable,
+    "disable": cmd_disable,
 }
 
 def main(argv=None) -> None:

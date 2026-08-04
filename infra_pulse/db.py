@@ -91,6 +91,17 @@ def list_targets(active_only: bool = False) -> list[sqlite3.Row]:
             query += " ORDER BY name"
             return conn.execute(query).fetchall()
 
+def set_target_active(name: str, active: bool) -> bool:
+    """Enable (active=True) or disable (active=False) a target by name.
+    Returns True if a target was updated, False if no such name exists."""
+    with closing(get_connection()) as conn:
+        with conn:
+            cur = conn.execute(
+                "UPDATE targets SET active = ? WHERE name = ?",
+                (1 if active else 0, name),
+            )
+            return cur.rowcount > 0
+
 # ---------- Check Results ----------
 
 def save_check(target_id: int, status: str, response_time_ms: float | None, detail: str = "") -> None:
