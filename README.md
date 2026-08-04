@@ -32,7 +32,7 @@ on the services you care about.
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/infra-pulse.git
+git clone https://github.com/abulyousuf/infra-pulse.git
 cd infra-pulse
 python -m venv .venv
 source .venv/bin/activate        # On Windows: .venv\Scripts\activate
