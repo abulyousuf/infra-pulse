@@ -1,0 +1,13 @@
+services:
+  pulse:
+    build: .
+    container_name: infra-pulse
+    restart: unless-stopped
+    volumes:
+      - pulse_data:/data
+    # Uncomment if ICMP ping fails in an unprivileged container:
+    # cap_add:
+    #   - NET_RAW
+
+volumes:
+  pulse_data:
