@@ -1,5 +1,8 @@
 # Infra Pulse
 
+![CI](https://github.com/abulyousuf/infra-pulse/actions/workflows/ci.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+
 A command-line uptime monitor for your infrastructure. Infra Pulse watches a list of
 targets — websites, APIs, servers, open ports, and DNS records — checks them on
 per-target schedules, stores every result in a local SQLite database, and raises alerts
@@ -9,6 +12,24 @@ It's a small, self-contained monitoring tool you can run on any machine to keep 
 on the services you care about.
 
 ![Infra Pulse uptime summary](docs/summary-example.png)
+
+## Quick Start (Docker)
+
+The published image runs anywhere Docker is installed — no cloning, no Python setup:
+
+```bash
+# Run a one-off check (state persists in the pulse_data volume)
+docker run --rm -v pulse_data:/data ghcr.io/abulyousuf/infra-pulse \
+  add --name "GitHub" --type http --target https://api.github.com
+docker run --rm -v pulse_data:/data ghcr.io/abulyousuf/infra-pulse check --name "GitHub"
+
+# View the uptime report
+docker run --rm -v pulse_data:/data ghcr.io/abulyousuf/infra-pulse report
+
+# Or run continuous monitoring as a background service
+docker run -d --name infra-pulse -v pulse_data:/data ghcr.io/abulyousuf/infra-pulse run
+docker logs -f infra-pulse
+```
 
 ## Features
 
@@ -29,7 +50,7 @@ on the services you care about.
 - Python 3.10 or newer
 - A working `ping` binary (standard on Linux, macOS, and Windows) for ping checks
 
-## Installation
+## Installation (from source)
 
 ```bash
 git clone https://github.com/abulyousuf/infra-pulse.git
@@ -122,23 +143,45 @@ definitions, and the entity-relationship diagram below.
 
 ![Infra Pulse ERD](docs/Infra_Pulse_ERD.png)
 
+## Design Decisions
+
+A few choices worth calling out:
+
+- **Transition-based alerting.** Alerts fire only when a target *changes* state (up→down, down→up), not on every failed check — so a two-hour outage produces two alerts, not 120. The scheduler tracks last-known status in memory to detect transitions.
+
+- **Uniform check contract.** Every probe (HTTP, ping, TCP, DNS) returns the same `{status, response_time_ms, detail}` shape, so the scheduler, storage, and reporting layers treat all four types identically without special-casing.
+
+- **SQLite with WAL journal mode.** Write-Ahead Logging lets the monitoring loop write results while `report` reads concurrently, without lock contention.
+
+- **UTC timestamps compared in Python.** Timestamps are stored as ISO 8601 UTC text; time-window queries compute the cutoff in Python to match the stored format, avoiding a subtle string-comparison mismatch with SQLite's `datetime()`.
+
+- **Best-effort alerting.** Alert delivery is wrapped so a failure logs and continues — monitoring must never crash because an alert couldn't be sent.
+
+- **Environment-configurable paths.** The database and config locations are read from environment variables, which lets the same code run in tests (temp DB), locally, and in Docker (state on a mounted volume).
+
 ## Project Structure
 
 ```
 infra-pulse/
 ├── infra_pulse/
-│   ├── cli.py          # argparse commands, wired to handlers
-│   ├── db.py           # SQLite schema + all data access
-│   ├── checks.py       # http / ping / tcp / dns probe logic
-│   ├── scheduler.py    # the continuous monitoring loop
-│   ├── alerts.py       # terminal/log + email alerting
-│   ├── reports.py      # rich-rendered uptime reports
-│   └── config.py       # loads and merges config.json
-├── tests/              # pytest suite
-├── docs/               # ERD and data dictionary
-├── main.py             # entry point
-├── config.example.json # template config (copy to config.json)
-├── requirements.txt
+│   ├── cli.py           # argparse commands, wired to handlers
+│   ├── db.py            # SQLite schema + all data access
+│   ├── checks.py        # http / ping / tcp / dns probe logic
+│   ├── scheduler.py     # the continuous monitoring loop
+│   ├── alerts.py        # terminal/log + email alerting
+│   ├── reports.py       # rich-rendered uptime reports
+│   └── config.py        # loads and merges config.json
+├── tests/               # pytest suite
+├── docs/                # ERD and data dictionary
+├── .github/workflows/   # CI (lint/test/build) + release to GHCR
+├── main.py              # entry point
+├── Dockerfile           # container image
+├── docker-compose.yml   # one-command daemon deployment
+├── config.example.json  # template config (copy to config.json)
+├── requirements.txt     # runtime dependencies
+├── requirements-dev.txt # dev dependencies (pytest, ruff)
+├── pyproject.toml       # pytest + ruff configuration
+├── LICENSE              # MIT
 └── README.md
 ```
 
