@@ -13,6 +13,31 @@ on the services you care about.
 
 ![Infra Pulse uptime summary](docs/summary-example.png)
 
+## Architecture
+
+```mermaid
+flowchart TD
+    CLI["CLI (argparse)<br/>add · check · run · report · enable · disable"]
+
+    CLI --> CMD["Command handlers"]
+    CLI --> SCHED["scheduler.py<br/>continuous monitoring loop"]
+
+    CMD --> CHECKS["checks.py<br/>HTTP · ping · TCP · DNS"]
+    SCHED --> CHECKS
+
+    CHECKS --> DB[("db.py — SQLite<br/>targets + checks")]
+    CMD --> DB
+
+    DB --> REPORTS["reports.py<br/>rich uptime tables"]
+    REPORTS --> CLI
+
+    SCHED -->|state change| ALERTS["alerts.py<br/>terminal · log · email"]
+    CMD -->|state change| ALERTS
+
+    CONFIG["config.py<br/>config.json + defaults"] -.-> ALERTS
+    CONFIG -.-> SCHED
+```
+
 ## Quick Start (Docker)
 
 The published image runs anywhere Docker is installed — no cloning, no Python setup:
